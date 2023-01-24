@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <title></title>
+    <meta charset="utf-8">
+    <!-- <link rel="stylesheet" href="/cms.css" type="text/css"> -->
+  </head>
+  <body>
+    <header>
+    </header>
+    
+    <% if session[:not_found_msg] %>
+      <p><%= session.delete(:not_found_msg) %></p>
+    <% end %>
+
+    <main>
+      <ul>
+        <% @files.each do |file| %>
+          <li><a href="<%= file %>"><%= file %></a></li>
+        <% end %>
+      </ul>
+    </main>
+  </body>
+</html>

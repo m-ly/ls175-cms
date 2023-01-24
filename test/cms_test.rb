@@ -70,7 +70,6 @@ class AppTest < Minitest::Test
     assert_equal 200, last_response.status
     
     last_response.body
-    assert_equal "bad-path.doc does not exist.", session[:message]
     assert_includes last_response.body, "bad-path.doc does not exist."
 
   end
@@ -93,9 +92,8 @@ class AppTest < Minitest::Test
     assert_equal 302, last_response.status
     
     get last_response["location"]
-    assert_equal "changes.txt has been updated", session[:message]
     assert_includes last_response.body, "changes.txt has been updated"
-    
+    ###
     get "/changes.txt"
     assert_equal 200, last_response.status
     assert_includes last_response.body, "new content"

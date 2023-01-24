@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <title>CMS Application</title>
+    <meta charset="UTF-8">
+    <!-- <link rel="stylesheet" href="/cms.css" type="text/css"> -->
+  </head>
+  <body>
+    <header>
+    </header>
+    
+    <% if session[:message] %>
+      <%= session.delete(:message) %>
+    <% end %>
+
+    <main>
+      <%= yield %>
+    </main>
+  </body>
+</html>

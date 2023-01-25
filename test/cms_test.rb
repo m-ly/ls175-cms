@@ -93,9 +93,29 @@ class AppTest < Minitest::Test
     
     get last_response["location"]
     assert_includes last_response.body, "changes.txt has been updated"
-    ###
+   
     get "/changes.txt"
     assert_equal 200, last_response.status
     assert_includes last_response.body, "new content"
+  end
+
+  def test_new_document_form
+    get "/new"
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, "Add a new document:"
+  end 
+
+  def test_new_document_creation
+    post "/create", filename: "a_new_file"
+    assert_equal 302, last_response.status
+
+    get last_response["location"]
+    assert_includes last_response.body, "a_new_file"
+  end
+
+  def test_new_document_error
+    post "/create", filename: nil
+    assert_equal 422, last_response.status 
+    assert_includes last_response.body, "file name must be at least one character"
   end
 end

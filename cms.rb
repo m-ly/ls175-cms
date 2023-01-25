@@ -28,10 +28,9 @@ def load_file_content(path)
     headers["Content-Type"] = "text/plain"
     content
   elsif File.extname(path) == ".md"
-    render_markdown(content)
+    erb render_markdown(content)
   end
 end
-
 
 # Display an index with each filename
 get "/" do
@@ -39,6 +38,27 @@ get "/" do
     File.basename(path)
   end
   erb :index
+end
+
+get "/new" do
+  erb :new
+end 
+
+post "/create" do
+  filename = params[:filename].to_s
+
+  if filename.size == 0 
+    session[:message] = "file name must be at least one character."
+    status 422
+    erb :new
+  else
+    file_path = File.join(data_path, filename)
+
+    File.write(file_path, "")
+
+    session[:message] = "#{filename} has been created."
+    redirect "/"
+  end 
 end
 
 # Retrieve a specific file from the system
@@ -74,3 +94,7 @@ post "/:filename" do
   session[:message] = "#{params[:filename]} has been updated."
   redirect "/"
 end
+
+
+
+

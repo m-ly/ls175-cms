@@ -1,0 +1,10 @@
+body {
+  padding: 1em;
+  font-family: sans-serif;
+}
+
+.flash {
+  padding: 10px;
+  background-color: rgb(234, 234, 150);
+}
+

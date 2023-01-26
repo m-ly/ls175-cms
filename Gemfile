@@ -12,3 +12,4 @@ gem "rack-test"
 
 gem "redcarpet"
 gem "yaml"
+gem "bcrypt"

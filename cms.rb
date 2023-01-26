@@ -4,6 +4,7 @@ require "tilt/erubis"
 require "securerandom"
 require "redcarpet"
 require "yaml"
+require "bcrypt"
 
 configure do 
   enable :sessions
@@ -44,13 +45,25 @@ def require_signed_in_user
   end
 end
 
-# Retrieving user data
-def users
-
+# Retrieving user data to a hash
+def load_users
+  credentials_path = if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/users.yml", __FILE__)
+  else
+    File.expand_path("../users.yml", __FILE__)
+  end
+  YAML.load_file(credentials_path)
 end 
 
-
-
+def valid_credentials?(username, password)
+  credentials = load_users
+  if credentials.include?(username)
+    bcrypt_password = BCrypt::Password.new(credentials[username])
+    bcrypt_password == password
+  else
+    false
+  end 
+end
 
 
 get "/" do
@@ -60,6 +73,25 @@ get "/" do
 
   erb :index
 end
+
+# Signin forms
+get "/users/signin" do
+  erb :signin
+end 
+
+post "/users/signin" do 
+  user = params[:username]
+
+  if valid_credentials?(user, params[:password])
+    session[:username] =  user
+    session[:message] = "Welcome!"
+    redirect "/"
+  else 
+    session[:message] = "Invalid Credentials"
+    status 422
+    redirect '/users/signin'
+  end 
+end 
 
 get "/new" do
   require_signed_in_user
@@ -85,21 +117,6 @@ post "/create" do
   end 
 end
 
-# Signin forms
-get "/users/signin" do
-  erb :signin
-end 
-
-post "/users/signin" do 
-  if params[:username] == 'admin' && params[:password] =='secret'
-    session[:username] = params[:username]
-    session[:message] = "Welcome!"
-    redirect "/"
-  else 
-    session[:message] = "Invalid Credentials"
-    redirect '/users/signin'
-  end 
-end 
 
 post "/users/signout" do 
   session.delete(:username)

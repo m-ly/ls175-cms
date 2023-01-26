@@ -29,6 +29,14 @@ class AppTest < Minitest::Test
     end
   end
 
+  def session 
+    last_request.env["rack.session"]
+  end 
+
+  def admin_session
+    { "rack.session" => { username: "admin" } }
+  end
+
   def test_index
     create_document "about.md"
     create_document "changes.txt"
@@ -63,22 +71,13 @@ class AppTest < Minitest::Test
   def test_non_existent_path
     get "/bad-path.doc"
     assert_equal 302, last_response.status
-
-    get last_response["Location"]
-    
-
-    assert_equal 200, last_response.status
-    
-    last_response.body
-    assert_includes last_response.body, "bad-path.doc does not exist."
-
+    assert_equal "bad-path.doc does not exist.", session[:message]
   end
 
   def test_editing_document
-    create_document "about.md"
     create_document "changes.txt"
 
-    get "/changes.txt/edit"
+    get "/changes.txt/edit", {}, admin_session
 
     assert_equal 200, last_response.status
     assert_includes last_response.body, "<textarea"
@@ -88,11 +87,10 @@ class AppTest < Minitest::Test
   def test_edit
     # get initial text data
     create_document "changes.txt"
-    post "/changes.txt", content: "new content"
+    post "/changes.txt", {content: "new content"}, admin_session
     assert_equal 302, last_response.status
     
-    get last_response["location"]
-    assert_includes last_response.body, "changes.txt has been updated"
+    assert_equal "changes.txt has been updated.", session[:message]
    
     get "/changes.txt"
     assert_equal 200, last_response.status
@@ -100,13 +98,13 @@ class AppTest < Minitest::Test
   end
 
   def test_new_document_form
-    get "/new"
+    get "/new", {}, admin_session
     assert_equal 200, last_response.status
     assert_includes last_response.body, "Add a new document:"
   end 
 
   def test_new_document_creation
-    post "/create", filename: "a_new_file"
+    post "/create", {filename: "a_new_file"}, admin_session
     assert_equal 302, last_response.status
 
     get last_response["location"]
@@ -114,8 +112,82 @@ class AppTest < Minitest::Test
   end
 
   def test_new_document_error
-    post "/create", filename: nil
+    post "/create", {filename: nil}, admin_session
     assert_equal 422, last_response.status 
-    assert_includes last_response.body, "file name must be at least one character"
+    assert_includes last_response.body, "File name must be at least one character"
+  end
+
+  def test_delete_document
+    create_document("a_new_file")
+    
+    post "a_new_file/delete", {}, admin_session
+    assert_equal 302, last_response.status
+    assert_equal "a_new_file has been deleted.", session[:message]
+
+    get '/'
+    refute_includes "a_new_file", last_response.body
+  end 
+
+  def test_sign_in_page
+    # texst that page renders correctly
+    get "/users/signin"
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, "<input"
+    assert_includes last_response.body, %q(<button type="submit")
+  end
+
+  def test_successful_sign_in
+    post "/users/signin", username: 'admin', password:'secret'
+    assert_equal 302, last_response.status
+    assert_equal "Welcome!", session[:message]
+    assert_equal "admin", session[:username]
+
+    get last_response['location']
+  end
+  
+  def test_sign_in_with_bad_credentials
+    post "/users/signin", username: 'bob', password:'1234'
+    assert_equal 302, last_response.status
+    assert_equal "Invalid Credentials", session[:message]
+  end
+
+  def test_sign_out
+    test_successful_sign_in
+
+    post "/users/signout"
+    assert_equal 302, last_response.status
+  
+    assert_equal "You have been signed out.", session[:message]
+    
+    get "/"
+    assert_nil session[:username]
+    assert_includes last_response.body, "Sign In"
+  end
+
+  def test_must_be_signed_in_to_edit
+    create_document("changes.txt")
+
+    post "/changes.txt", {content: "new content"}
+    assert_equal 302, last_response.status
+
+    assert_equal "You must be signed in to do that.", session[:message]
+  end
+
+  def test_must_be_signed_in_to_delete
+    create_document("changes.txt")
+
+    post "/changes.txt/delete"
+    assert_equal 302, last_response.status
+
+    assert_equal "You must be signed in to do that.", session[:message]
+  end
+
+  def test_must_be_signed_in_to_create
+    create_document("changes.txt")
+
+    post "/create", {content: "a_new_file"}
+    assert_equal 302, last_response.status
+
+    assert_equal "You must be signed in to do that.", session[:message]
   end
 end

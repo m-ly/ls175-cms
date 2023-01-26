@@ -3,6 +3,7 @@ require "sinatra/reloader" if development?
 require "tilt/erubis"
 require "securerandom"
 require "redcarpet"
+require "yaml"
 
 configure do 
   enable :sessions
@@ -32,23 +33,46 @@ def load_file_content(path)
   end
 end
 
-# Display an index with each filename
+def logged_in?
+  session[:username]
+end
+
+def require_signed_in_user
+  unless logged_in?
+    session[:message] = "You must be signed in to do that."
+    redirect "/"
+  end
+end
+
+# Retrieving user data
+def users
+
+end 
+
+
+
+
+
 get "/" do
   @files = Dir.glob(data_path + "/*").map do |path|
     File.basename(path)
   end
+
   erb :index
 end
 
 get "/new" do
+  require_signed_in_user
   erb :new
 end 
 
 post "/create" do
+  require_signed_in_user
+
   filename = params[:filename].to_s
 
   if filename.size == 0 
-    session[:message] = "file name must be at least one character."
+    session[:message] = "File name must be at least one character."
     status 422
     erb :new
   else
@@ -60,6 +84,42 @@ post "/create" do
     redirect "/"
   end 
 end
+
+# Signin forms
+get "/users/signin" do
+  erb :signin
+end 
+
+post "/users/signin" do 
+  if params[:username] == 'admin' && params[:password] =='secret'
+    session[:username] = params[:username]
+    session[:message] = "Welcome!"
+    redirect "/"
+  else 
+    session[:message] = "Invalid Credentials"
+    redirect '/users/signin'
+  end 
+end 
+
+post "/users/signout" do 
+  session.delete(:username)
+  session[:message] = "You have been signed out."
+  redirect "/"
+end 
+
+# Delete a file
+post "/:filename/delete" do
+  require_signed_in_user
+  
+  filename = params[:filename].to_s
+  file_path = File.join(data_path, filename)
+
+  File.delete(file_path)
+
+  session[:message] = "#{filename} has been deleted."
+  redirect "/"
+end 
+
 
 # Retrieve a specific file from the system
 get "/:filename" do 
@@ -76,7 +136,10 @@ end
 
 
 # Get the form to edit a document
+
 get "/:filename/edit" do 
+  require_signed_in_user
+
   file_path = File.join(data_path, params[:filename])
   
   @filename = params[:filename]
@@ -87,6 +150,8 @@ end
 
 # Submit form to edit a document
 post "/:filename" do
+  require_signed_in_user
+
   file_path = File.join(data_path, params[:filename])
 
   File.write(file_path, params[:content])

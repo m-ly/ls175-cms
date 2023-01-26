@@ -8,3 +8,16 @@ body {
   background-color: rgb(234, 234, 150);
 }
 
+form.inline { 
+  display: inline;
+}
+
+
+form.block {
+  display: block;
+}
+
+.user-status {
+  font-style: italic;
+  font-size: 0.9em;
+}

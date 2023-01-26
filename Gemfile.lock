@@ -25,6 +25,7 @@ GEM
       sinatra (= 3.0.5)
       tilt (~> 2.0)
     tilt (2.0.11)
+    yaml (0.2.1)
 
 PLATFORMS
   arm64-darwin-22
@@ -36,6 +37,7 @@ DEPENDENCIES
   redcarpet
   sinatra
   sinatra-contrib
+  yaml
 
 RUBY VERSION
    ruby 3.1.2p20
